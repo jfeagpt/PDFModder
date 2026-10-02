@@ -1,0 +1,32 @@
+{
+  "release": "https://github.com/liberationfonts/liberation-fonts/releases/tag/2.1.5",
+  "download": "https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz",
+  "archive_sha256": "7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0",
+  "license": "SIL OFL 1.1",
+  "fonts": [
+    {
+      "file": "LiberationSans-Regular.ttf",
+      "version": "Version 2.1.5",
+      "sha256": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+      "fsType": 0
+    },
+    {
+      "file": "LiberationSans-Bold.ttf",
+      "version": "Version 2.1.5",
+      "sha256": "788abee4c806d660e8aee46689dd8540cd4bb98da03dcc9d171ce3efd99a9173",
+      "fsType": 0
+    },
+    {
+      "file": "LiberationSans-Italic.ttf",
+      "version": "Version 2.1.5",
+      "sha256": "e5bae5c4cde31f22142753855f4f8fb86da6ff39955ed3c0a11248b0d16948b0",
+      "fsType": 0
+    },
+    {
+      "file": "LiberationSans-BoldItalic.ttf",
+      "version": "Version 2.1.5",
+      "sha256": "698da70fc191cc5f33ad4d6d3fe830fe4624b898ea2e3169955928b7c491f1ee",
+      "fsType": 0
+    }
+  ]
+}

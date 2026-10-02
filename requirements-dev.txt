@@ -1,0 +1,18 @@
+-r requirements.txt
+reportlab==4.4.9
+pytest==9.0.2
+pytest-qt==4.5.0
+pyinstaller==6.18.0
+# Transitivas fijadas a las versiones del entorno Windows de esta entrega.
+altgraph==0.17.5
+charset-normalizer==3.5.1
+colorama==0.4.6
+iniconfig==2.3.0
+packaging==26.3
+pefile==2024.8.26
+pluggy==1.6.0
+Pygments==2.21.0
+pyinstaller-hooks-contrib==2026.7
+pywin32-ctypes==0.2.3
+setuptools==84.0.0
+typing_extensions==4.16.0

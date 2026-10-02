@@ -1,0 +1,57 @@
+name: Compilar y publicar Windows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pdfmodder/**'
+      - 'scripts/**'
+      - 'installer/**'
+      - 'assets/**'
+      - 'requirements*.txt'
+      - 'PDFModder.spec'
+      - 'run_pdfmodder.py'
+      - '.github/workflows/windows-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Instalar dependencias fijadas
+        run: ./scripts/install.ps1 -Development -PythonExe (Get-Command python).Source
+      - name: Comprobar, compilar y empaquetar
+        run: >-
+          .venv/Scripts/python.exe scripts/release_v170.py --tests
+          tests/test_reading_canvas_v171.py tests/test_reading_worker_v171.py
+          tests/test_reading_ui_v171.py tests/test_updates_v170.py
+      - name: Conservar entregas y diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDFModder-Windows-${{ github.sha }}
+          path: |
+            releases/v*/
+            output/release-v*-*.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Publicar instalador, portable, fuentes y manifiesto
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: .venv/Scripts/python.exe scripts/publish_github_releases.py

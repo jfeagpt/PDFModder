@@ -1,0 +1,29 @@
+# Imágenes en PDF Modder 0.4.0
+
+Use **Agregar imagen**, elija un PNG, JPEG, WebP, BMP o TIFF de un solo fotograma y pulse dentro de la página. El diálogo permite fijar posición y dimensiones en milímetros. La previsualización procede del PDF modificado; Pulse **2. Aplicar cambio** para incorporarla al historial o **Cancelar · Esc** para descartarla; después use **Guardar como…**.
+
+Active **Seleccionar imágenes** y pulse la imagen. Arrastre el interior para moverla o el tirador azul de su esquina para cambiar el tamaño. Las flechas desplazan la selección con el paso configurado; una acción de arrastre o un grupo de pulsaciones forman una entrada de historial. En **Posición / tamaño** puede introducir medidas exactas. Conservar proporciones está activado inicialmente y se puede desactivar explícitamente. Cambiar las dimensiones modifica su colocación en la página, sin remuestrear el mapa de píxeles. También puede eliminar una imagen seleccionada, con previsualización y deshacer.
+
+Las imágenes añadidas son objetos de imagen PDF, con su matriz de colocación; no son anotaciones ni capturas de la página. El texto y los vectores restantes siguen siendo texto y vectores. El objeto puede volver a seleccionarse, moverse y redimensionarse después de guardar y reabrir la copia. El recorte y giro propio de las imágenes no están implementados; el giro de la página sí se conserva.
+
+## Aislamiento de una instancia
+
+`media.py` interpreta los operadores mediante `pypdf.generic.ContentStream`. Reconoce una secuencia aislada `q / cm / Do / Q`, incluso dentro de un stream con otros operadores. Compone la matriz heredada con la colocación de la imagen, incluyendo escalas globales positivas no unitarias. Exige una colocación final rectangular sin giro, reflexión ni sesgo. Los recortes rectangulares se conservan y sólo se permite transformar una imagen si origen y destino quedan enteros dentro de ellos. Comprueba su recurso y envolvente contra la imagen extraída por MuPDF. Las instancias con construcciones diferentes aparecen como no editables con un motivo concreto.
+
+Agregar una imagen ya no reutiliza el bloqueo global de recortes del editor de texto. Antes de insertarla se aísla el contenido anterior con estados gráficos propios, conservando sus recortes y restaurando la transformación de página para la nueva colocación. No se borran recortes ni capas OCR. Se comprueban estados gráficos equilibrados y se bloquean estructuras que no pueden aislarse.
+
+Para mover o redimensionar se cambia la matriz de **esa instancia**, clonando su stream y reemplazando únicamente la referencia Contents de la página seleccionada. No se reemplaza el objeto imagen compartido: otra página o aparición que lo use conserva su contenido y colocación. Para eliminar se retiran los cuatro operadores de esa instancia y se hace escritura completa con limpieza de objetos no referenciados. No se usan expresiones regulares ni sustituciones de cadenas sobre el PDF binario.
+
+La prueba de idoneidad detectó que `Page.insert_image` en PyMuPDF 1.26.7 no colocaba como se esperaba una imagen en la combinación de página girada y CropBox desplazado. La inserción y transformación usan las coordenadas de la página sin giro, restaurando inmediatamente su rotación antes de serializar. Se comprueban 90, 180 y 270 grados con CropBox desplazado. Es una adaptación del camino real de exportación, no una corrección sólo visual de la interfaz. Referencia: [API oficial de Page](https://pymupdf.readthedocs.io/en/latest/page.html).
+
+## Conservación y límites
+
+Después de cada operación se reabre la escritura completa. Se contrastan todas las páginas, sus cajas y rotación, metadatos Info/XMP, marcadores, texto por carácter y posición, vectores, enlaces, anotaciones y demás imágenes. Se conservan las dimensiones en píxeles, profundidad y contenido decodificado de la imagen transformada. El tamaño comprimido del stream no se trata como identidad de imagen: la limpieza puede cambiar la compresión sin cambiar sus píxeles.
+
+La validación visual usa 144 ppp con tolerancia de 8/255 por canal. Sólo excluye el rectángulo de la imagen de origen y el de destino, ampliados 0,75 pt por antialiasing; las demás páginas no tienen exclusiones. El texto que cae dentro de esos rectángulos se verifica igualmente por contenido y coordenadas. Una imagen opaca colocada encima de contenido lo cubre visualmente; la interfaz lo advierte y no elimina ese contenido. La transparencia alfa se incorpora como máscara PDF y se comprueba con una imagen sintética semitransparente.
+
+Las entradas están limitadas a 50 MiB, 40 millones de píxeles y un solo fotograma. Se aplica la orientación EXIF, se decodifica a RGB o RGBA y se incorpora como PNG sin cambio de resolución. Un JPEG puede aumentar el tamaño del PDF por esta normalización. No se ofrece conservación de perfiles ICC de fotografía, CMYK de imprenta ni todos los metadatos de imagen. Los archivos originales de imagen no se modifican.
+
+Se aplican los mismos bloqueos documentales del editor: firmas, cifrado/restricciones, formularios y estructuras no conservadas. Las instancias dentro de Form XObjects, recortes curvos o parciales, recortes de texto, capas y transformaciones complejas no se presentan como editables. También se bloquean máscaras de estado gráfico, mezclas o sobreimpresión incompatibles. Se admite opacidad heredada compatible y transparencia de imágenes, verificadas en pruebas. Se demostraron el corpus sintético y nueve imágenes aislables de un PDF real; otras construcciones y exportadores siguen pendientes.
+
+Pruebas reproducibles: `tests/test_media.py`, `tests/test_media_clips.py`, `tests/test_ui_extensions.py` y el modo `--smoke-extended`. Cubren alfa, EXIF, recursos compartidos, edición tras redacción real de texto, movimiento, dimensiones, eliminación, guardado y reapertura.

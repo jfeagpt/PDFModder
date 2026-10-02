@@ -1,0 +1,875 @@
+{
+  "schema": 1,
+  "coordinates": "PyMuPDF unrotated page points, y down; 72 pt = 25.4 mm",
+  "synthetic_only": true,
+  "reproducibility": "Geometría, fuentes y contenido estables; cifrado usa aleatoriedad y no se espera identidad binaria.",
+  "test_passwords": {
+    "encrypted_user": "lectura-pruebas",
+    "owner": "propietario-pruebas"
+  },
+  "fonts": {
+    "LiberationSans-Bold.ttf": "788abee4c806d660e8aee46689dd8540cd4bb98da03dcc9d171ce3efd99a9173",
+    "LiberationSans-BoldItalic.ttf": "698da70fc191cc5f33ad4d6d3fe830fe4624b898ea2e3169955928b7c491f1ee",
+    "LiberationSans-Italic.ttf": "e5bae5c4cde31f22142753855f4f8fb86da6ff39955ed3c0a11248b0d16948b0",
+    "LiberationSans-Regular.ttf": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+    "Vera.ttf": "c4c45690b345435b2cba52ecabe275f05e49b389b39fe68ad03afbb551288d3d",
+    "VeraBd.ttf": "cc037385e4d55bfde89b13e03091ee93bf40c0c52ddd391ff031ab276f13b8e9",
+    "VeraBI.ttf": "fca0d4eeac1ced7e75e1b2274c869a351d2d83b5ed1f61d249e7bcc477c33ebe",
+    "VeraIt.ttf": "2adc684d518f45232c4ad1f56522f5a82a6904c31940373e1b7030beee20fb3a"
+  },
+  "documents": {
+    "main": {
+      "file": "digital.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "PDF MODDER\nDocumento digital de prueba | datos ficticios\nFecha:\n10/09/2026\nReferencia: PRUEBA-001\nEspañol: año, piñón, café, útil, acción y 25,50 €\nTOTAL\nTOTAL\nTOTAL\nConcepto\nImporte\nSemillas de otoño\n1.234,56 €\nTexto vecino inalterado\n250,00 €\nMover esta línea conserva su distribución.\nPALABRA destino libre a la derecha.\nColumna izquierda: UNO\nColumna derecha: DOS\nGrupo uno\nGrupo dos\nVecino de otra columna\nEnlace de prueba\nPágina 1 / 2 - los márgenes y elementos de control deben conservarse\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                125.0,
+                114.8187484741211,
+                181.27255249023438,
+                127.37374877929688
+              ]
+            ],
+            "1.234,56 €": [
+              [
+                476.826171875,
+                272.8187561035156,
+                529.9599609375,
+                285.3737487792969
+              ]
+            ],
+            "TOTAL": [
+              [
+                48.0,
+                186.81875610351562,
+                85.45124816894531,
+                199.37374877929688
+              ],
+              [
+                170.0,
+                186.81875610351562,
+                206.21377563476562,
+                199.37374877929688
+              ],
+              [
+                310.0,
+                186.81875610351562,
+                346.2137145996094,
+                199.37374877929688
+              ]
+            ],
+            "PALABRA": [
+              [
+                48.0,
+                445.271240234375,
+                97.53599548339844,
+                457.26824951171875
+              ]
+            ],
+            "Mover esta línea conserva su distribución.": [
+              [
+                48.0,
+                405.271240234375,
+                248.64883422851562,
+                417.26824951171875
+              ]
+            ],
+            "Texto vecino inalterado": [
+              [
+                58.0,
+                320.8187561035156,
+                174.2462615966797,
+                333.3737487792969
+              ]
+            ],
+            "Columna izquierda: UNO": [
+              [
+                48.0,
+                505.49749755859375,
+                164.6549530029297,
+                517.2155151367188
+              ]
+            ],
+            "Columna derecha: DOS": [
+              [
+                330.0,
+                505.49749755859375,
+                441.4051208496094,
+                517.2155151367188
+              ]
+            ]
+          },
+          "images": 1,
+          "drawings": 9,
+          "links": 1,
+          "annotations": 1,
+          "widgets": 0
+        },
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "PÁGINA DE CONTROL SIN EDITAR\n10/09/2026 - TOTAL - 1.234,56 €\nEsta página comparte recursos tipográficos con la primera.\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                109.8187484741211,
+                104.2724838256836,
+                122.37374877929688
+              ]
+            ],
+            "1.234,56 €": [
+              [
+                160.44375610351562,
+                109.8187484741211,
+                213.5775604248047,
+                122.37374877929688
+              ]
+            ],
+            "TOTAL": [
+              [
+                114.25122833251953,
+                109.8187484741211,
+                150.46499633789062,
+                122.37374877929688
+              ]
+            ]
+          },
+          "images": 1,
+          "drawings": 1,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 2,
+      "sha256": "76568d968eb333b0588c9cb1658934c7d12ba525a9f122f25105ce1c2c7fe0f7"
+    },
+    "rotated": {
+      "file": "rotated_crop.pdf",
+      "pages": [
+        {
+          "rotation": 90,
+          "mediabox": [
+            0.0,
+            0.0,
+            640.0,
+            880.0
+          ],
+          "cropbox": [
+            30.0,
+            40.0,
+            610.0,
+            840.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            800.0,
+            580.0
+          ],
+          "text": "10/09/2026\nMover línea rotada\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                60.0,
+                69.8187484741211,
+                116.2724838256836,
+                82.37374877929688
+              ]
+            ],
+            "Mover línea rotada": [
+              [
+                60.0,
+                119.8187484741211,
+                153.7462921142578,
+                132.37374877929688
+              ]
+            ]
+          },
+          "images": 0,
+          "drawings": 1,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 1,
+      "sha256": "df3cc0bdc239c0fde1cd641ae24ae3e3a386b7b4c2d6b17e7b890fcd774b6d2f"
+    },
+    "subset": {
+      "file": "subset.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "10/09/2026\nTexto ASCII de prueba\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                81.27276611328125,
+                104.29499053955078,
+                92.52276611328125
+              ]
+            ]
+          },
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 1,
+      "sha256": "a0dda1e8ec4e090baef233e895c23493ebdb575a760b82c1502ac74ba88d655c"
+    },
+    "local_font": {
+      "file": "font_local.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "10/09/2026 - Texto sin incrustar\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                79.8187484741211,
+                104.2724838256836,
+                92.37374877929688
+              ]
+            ]
+          },
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 1,
+      "sha256": "f0bb6cb219e252ec1a3d9f4c16e870f9a6aba6098889d22adbdf864f4f4d9c11"
+    },
+    "missing_font": {
+      "file": "font_missing.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "10/09/2026 - Texto sin incrustar\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                79.8187484741211,
+                104.2724838256836,
+                92.37374877929688
+              ]
+            ]
+          },
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 1,
+      "sha256": "304de5fcd7aafbe6e97420a27a257e6e218b5b761963ab6cb06d58e767b7106c"
+    },
+    "unsupported": {
+      "file": "unsupported_regions.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "Texto normal editable\nTexto con escala horizontal\nTexto inclinado\nTexto semitransparente\nContorno sin relleno\nSOLAPADO\nVECINO\nNormal \nnegrita\n",
+          "regions": {
+            "SOLAPADO": [
+              [
+                48.0,
+                409.8187561035156,
+                109.82999420166016,
+                422.3737487792969
+              ]
+            ],
+            "VECINO": [
+              [
+                48.0,
+                411.8187561035156,
+                91.08749389648438,
+                424.3737487792969
+              ]
+            ],
+            "Texto normal editable": [
+              [
+                48.0,
+                69.8187484741211,
+                156.1125030517578,
+                82.37374877929688
+              ]
+            ]
+          },
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 1,
+      "sha256": "f48e5c43573c90e8da92080cb24515c790a2fff9292660da89c009dc29268116"
+    },
+    "form": {
+      "file": "form.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "Formulario: los campos no son texto ordinario\n1234.56\n",
+          "regions": {},
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 1
+        }
+      ],
+      "page_count": 1,
+      "sha256": "253a6a831a0a0ffcca210868a22ed4d73ac52a4d9dadd774ca4917fcd32a0f8d"
+    },
+    "signature": {
+      "file": "signature_marker_invalid.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "Formulario: los campos no son texto ordinario\nMARCADOR DE FIRMA INVALIDO - SOLO PRUEBA\nEste archivo no contiene una firma criptografica valida.\n1234.56\n",
+          "regions": {},
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 2
+        }
+      ],
+      "page_count": 1,
+      "sha256": "8b1318e535007eddab311926595f1e2d875322f4cb38fb1bd70e3f2f389bb324"
+    },
+    "restricted": {
+      "file": "restricted.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "PDF MODDER\nDocumento digital de prueba | datos ficticios\nFecha:\n10/09/2026\nReferencia: PRUEBA-001\nEspañol: año, piñón, café, útil, acción y 25,50 €\nTOTAL\nTOTAL\nTOTAL\nConcepto\nImporte\nSemillas de otoño\n1.234,56 €\nTexto vecino inalterado\n250,00 €\nMover esta línea conserva su distribución.\nPALABRA destino libre a la derecha.\nColumna izquierda: UNO\nColumna derecha: DOS\nGrupo uno\nGrupo dos\nVecino de otra columna\nEnlace de prueba\nPágina 1 / 2 - los márgenes y elementos de control deben conservarse\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                125.0,
+                114.8187484741211,
+                181.27255249023438,
+                127.37374877929688
+              ]
+            ],
+            "1.234,56 €": [
+              [
+                476.826171875,
+                272.8187561035156,
+                529.9599609375,
+                285.3737487792969
+              ]
+            ],
+            "TOTAL": [
+              [
+                48.0,
+                186.81875610351562,
+                85.45124816894531,
+                199.37374877929688
+              ],
+              [
+                170.0,
+                186.81875610351562,
+                206.21377563476562,
+                199.37374877929688
+              ],
+              [
+                310.0,
+                186.81875610351562,
+                346.2137145996094,
+                199.37374877929688
+              ]
+            ],
+            "PALABRA": [
+              [
+                48.0,
+                445.271240234375,
+                97.53599548339844,
+                457.26824951171875
+              ]
+            ],
+            "Mover esta línea conserva su distribución.": [
+              [
+                48.0,
+                405.271240234375,
+                248.64883422851562,
+                417.26824951171875
+              ]
+            ],
+            "Texto vecino inalterado": [
+              [
+                58.0,
+                320.8187561035156,
+                174.2462615966797,
+                333.3737487792969
+              ]
+            ],
+            "Columna izquierda: UNO": [
+              [
+                48.0,
+                505.49749755859375,
+                164.6549530029297,
+                517.2155151367188
+              ]
+            ],
+            "Columna derecha: DOS": [
+              [
+                330.0,
+                505.49749755859375,
+                441.4051208496094,
+                517.2155151367188
+              ]
+            ]
+          },
+          "images": 1,
+          "drawings": 9,
+          "links": 1,
+          "annotations": 1,
+          "widgets": 0
+        },
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "PÁGINA DE CONTROL SIN EDITAR\n10/09/2026 - TOTAL - 1.234,56 €\nEsta página comparte recursos tipográficos con la primera.\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                109.8187484741211,
+                104.2724838256836,
+                122.37374877929688
+              ]
+            ],
+            "1.234,56 €": [
+              [
+                160.44375610351562,
+                109.8187484741211,
+                213.5775604248047,
+                122.37374877929688
+              ]
+            ],
+            "TOTAL": [
+              [
+                114.25122833251953,
+                109.8187484741211,
+                150.46499633789062,
+                122.37374877929688
+              ]
+            ]
+          },
+          "images": 1,
+          "drawings": 1,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 2,
+      "sha256": "b2fde33998349e2b0ddc150d8de5ca8cf28d9eb176a9a0fdacb11f45a4c7daa5"
+    },
+    "encrypted": {
+      "file": "encrypted.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "PDF MODDER\nDocumento digital de prueba | datos ficticios\nFecha:\n10/09/2026\nReferencia: PRUEBA-001\nEspañol: año, piñón, café, útil, acción y 25,50 €\nTOTAL\nTOTAL\nTOTAL\nConcepto\nImporte\nSemillas de otoño\n1.234,56 €\nTexto vecino inalterado\n250,00 €\nMover esta línea conserva su distribución.\nPALABRA destino libre a la derecha.\nColumna izquierda: UNO\nColumna derecha: DOS\nGrupo uno\nGrupo dos\nVecino de otra columna\nEnlace de prueba\nPágina 1 / 2 - los márgenes y elementos de control deben conservarse\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                125.0,
+                114.8187484741211,
+                181.27255249023438,
+                127.37374877929688
+              ]
+            ],
+            "1.234,56 €": [
+              [
+                476.826171875,
+                272.8187561035156,
+                529.9599609375,
+                285.3737487792969
+              ]
+            ],
+            "TOTAL": [
+              [
+                48.0,
+                186.81875610351562,
+                85.45124816894531,
+                199.37374877929688
+              ],
+              [
+                170.0,
+                186.81875610351562,
+                206.21377563476562,
+                199.37374877929688
+              ],
+              [
+                310.0,
+                186.81875610351562,
+                346.2137145996094,
+                199.37374877929688
+              ]
+            ],
+            "PALABRA": [
+              [
+                48.0,
+                445.271240234375,
+                97.53599548339844,
+                457.26824951171875
+              ]
+            ],
+            "Mover esta línea conserva su distribución.": [
+              [
+                48.0,
+                405.271240234375,
+                248.64883422851562,
+                417.26824951171875
+              ]
+            ],
+            "Texto vecino inalterado": [
+              [
+                58.0,
+                320.8187561035156,
+                174.2462615966797,
+                333.3737487792969
+              ]
+            ],
+            "Columna izquierda: UNO": [
+              [
+                48.0,
+                505.49749755859375,
+                164.6549530029297,
+                517.2155151367188
+              ]
+            ],
+            "Columna derecha: DOS": [
+              [
+                330.0,
+                505.49749755859375,
+                441.4051208496094,
+                517.2155151367188
+              ]
+            ]
+          },
+          "images": 1,
+          "drawings": 9,
+          "links": 1,
+          "annotations": 1,
+          "widgets": 0
+        },
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "PÁGINA DE CONTROL SIN EDITAR\n10/09/2026 - TOTAL - 1.234,56 €\nEsta página comparte recursos tipográficos con la primera.\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                109.8187484741211,
+                104.2724838256836,
+                122.37374877929688
+              ]
+            ],
+            "1.234,56 €": [
+              [
+                160.44375610351562,
+                109.8187484741211,
+                213.5775604248047,
+                122.37374877929688
+              ]
+            ],
+            "TOTAL": [
+              [
+                114.25122833251953,
+                109.8187484741211,
+                150.46499633789062,
+                122.37374877929688
+              ]
+            ]
+          },
+          "images": 1,
+          "drawings": 1,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 2,
+      "sha256": "a8ef0290e4a4078ffaab2ede29692f42c33e105d8d286911684f0c56bd7ce904"
+    },
+    "embedding_restricted": {
+      "file": "font_embedding_restricted.pdf",
+      "pages": [
+        {
+          "rotation": 0,
+          "mediabox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "cropbox": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "rect": [
+            0.0,
+            0.0,
+            595.0,
+            842.0
+          ],
+          "text": "Vera: fsType 4, Preview and Print\n10/09/2026\n",
+          "regions": {
+            "10/09/2026": [
+              [
+                48.0,
+                119.55999755859375,
+                112.79998779296875,
+                132.6437530517578
+              ]
+            ]
+          },
+          "images": 0,
+          "drawings": 0,
+          "links": 0,
+          "annotations": 0,
+          "widgets": 0
+        }
+      ],
+      "page_count": 1,
+      "sha256": "1a51fc1650295e70ff5f5847212ddbd4babf995002a7d262754126ddc8670ec6"
+    }
+  }
+}
