@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -191,6 +192,34 @@ def verify_file(path, release):
         raise ValueError('La comprobación SHA-256 ha fallado. El instalador no se ejecutará.')
 
 
+def detected_installation_directory(executable=None, installed_version=None):
+    """Identify this installed instance, never an arbitrary portable directory."""
+    if executable is None and not getattr(sys, 'frozen', False):
+        return None
+    source = Path(executable or sys.executable)
+    if not source.is_absolute() or any(_link(parent) for parent in (source, *source.parents)):
+        return None
+    directory = source.resolve().parent
+    marker = directory / '.pdfmodder-installation.json'
+    try:
+        if any(_link(parent) for parent in (directory, *directory.parents)) or _link(marker):
+            return None
+        if not marker.is_file() or marker.stat().st_size > 32768:
+            return None
+        data = json.loads(marker.read_text(encoding='utf-8-sig'))
+        if (not isinstance(data, dict) or data.get('application_id') != 'PDFModder.Windows.PerUser'
+                or (installed_version is not None and data.get('version') != installed_version)
+                or not (directory / '.pdfmodder-files.tsv').is_file()
+                or _link(directory / '.pdfmodder-files.tsv')
+                or not (directory / 'Desinstalar.exe').is_file()
+                or _link(directory / 'Desinstalar.exe')):
+            return None
+        version_tuple(data.get('version'))
+        return directory
+    except (OSError, ValueError, UnicodeError):
+        return None
+
+
 class AppUpdater:
     def __init__(self, installed_version, directory):
         version_tuple(installed_version)
@@ -217,8 +246,9 @@ class AppUpdater:
 
     def _start(self, state, message, operation):
         with self._lock:
-            if self._busy or self._cancel.is_set():
+            if self._busy:
                 return False
+            self._cancel.clear()
             self._busy = True
             self._status.update(state=state, progress=0, message=message)
 
@@ -297,8 +327,12 @@ class AppUpdater:
             self._set(state='ready', progress=100, message='Instalador comprobado. Puedes iniciar la instalación.')
         return self._start('checking', 'Volviendo a comprobar la publicación antes de descargar…', operation)
 
-    def install(self):
-        """Called only after the desktop confirmation and unsaved-work check."""
+    def install(self, previous_directory=None, previous_pid=None):
+        """Called after the update click and the unsaved-work check.
+
+        The installer owns the transactional replacement. Portable copies are
+        left intact; only a explicitly identified installed instance is retired.
+        """
         with self._lock:
             if self._busy or self._status['state'] != 'ready' or self._ready_path is None:
                 return False
@@ -310,6 +344,19 @@ class AppUpdater:
             verify_file(path, release)
             if self._cancel.is_set():
                 raise InterruptedError('Instalación cancelada.')
-            subprocess.Popen([str(path)], shell=False, cwd=str(path.parent))
-            self._set(state='installing', message='El instalador está abierto. Continúa los pasos de instalación.')
+            arguments = [str(path), '--update']
+            if previous_directory is not None:
+                directory = Path(previous_directory)
+                if (not directory.is_absolute() or detected_installation_directory(
+                        directory / 'PDFModder.exe', self._status['installedVersion']) != directory.resolve()):
+                    raise ValueError('La copia anterior no es una instalación reconocida. No se retirará.')
+                arguments.extend(['--previous-dir', str(directory.resolve())])
+                if previous_pid is not None:
+                    if type(previous_pid) is not int or previous_pid <= 0:
+                        raise ValueError('El proceso de la aplicación anterior no es válido.')
+                    arguments.extend(['--previous-pid', str(previous_pid)])
+            elif previous_pid is not None:
+                raise ValueError('No se puede esperar un proceso sin identificar su instalación.')
+            subprocess.Popen(arguments, shell=False, cwd=str(path.parent))
+            self._set(state='installing', message='Se cerrará PDF Modder, se instalará la actualización y se abrirá la nueva versión. La copia anterior se retirará después de instalar correctamente.')
         return self._start('verifying', 'Comprobando de nuevo el instalador antes de ejecutarlo…', operation)

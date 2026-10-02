@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QListView,
     QSplitter, QListWidget, QListWidgetItem, QPlainTextEdit, QLabel, QPushButton,
     QDoubleSpinBox, QComboBox, QCheckBox, QLineEdit, QToolBar, QFileDialog,
-    QMessageBox, QDialog, QDialogButtonBox, QInputDialog, QGroupBox, QScrollArea,
+    QMessageBox, QDialog, QDialogButtonBox, QInputDialog, QGroupBox, QScrollArea, QStackedWidget,
 )
 
 from .canvas import PdfCanvas
@@ -33,6 +33,8 @@ from .workspace_ui_v170 import WorkspaceUiV170Mixin
 from .document_ui_v170 import DocumentUiV170Mixin
 from .clipboard_ui_v170 import ClipboardUiV170Mixin
 from .reading_ui_v171 import ReadingUiV171Mixin
+from .continuous_ui_v180 import ContinuousUiV180Mixin
+from .continuous_reader_v180 import ContinuousReader
 from . import __version__
 
 
@@ -54,7 +56,7 @@ def _dispatch(command, payload):
     return dispatch(command, payload)
 
 
-class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,WorkspaceUiV170Mixin,SigningUiMixin,ToolsWorkspaceV150Mixin,PageActionsV150Mixin,InsertionUiV150Mixin,RichEditing,ObjectEditing,AdvancedEditing,ExtendedEditing,QMainWindow):
+class MainWindow(ContinuousUiV180Mixin,ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,WorkspaceUiV170Mixin,SigningUiMixin,ToolsWorkspaceV150Mixin,PageActionsV150Mixin,InsertionUiV150Mixin,RichEditing,ObjectEditing,AdvancedEditing,ExtendedEditing,QMainWindow):
     operation_finished = Signal(str, object)
     error_raised = Signal(str)
     page_ready = Signal()
@@ -210,7 +212,12 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
         self.canvas.cancel_requested.connect(self.cancel)
         self.canvas.delete_requested.connect(lambda:self.preview_text(""))
         self.canvas.arrow_requested.connect(self.arrow_move)
-        splitter.addWidget(self.canvas)
+        self.reader = ContinuousReader()
+        self.document_views = QStackedWidget()
+        self.document_views.setObjectName('documentViews')
+        self.document_views.addWidget(self.canvas)
+        self.document_views.addWidget(self.reader)
+        splitter.addWidget(self.document_views)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setMinimumWidth(290)
@@ -520,9 +527,9 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
             payload["history_dir"] = str(self.history_dir)
         def opened(result):
             self.recent_open(self.state.get('path',path))
-            self._set_mode_v171('reading')
             self.model = None
             self.page_number = 0
+            self._set_mode_v171('reading')
             self._thumbnail_pages.clear()
             self._thumbnail_order.clear()
             self.compare_action.setChecked(False)
@@ -554,6 +561,9 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
 
     def load_page(self):
         if not self.state:
+            return
+        if self.application_mode == 'reading':
+            self._ensure_reader_v180()
             return
         self._sync_page_list()
         origins=self.state.get('original_pages',[])
@@ -602,6 +612,10 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
         self.page_ready.emit()
 
     def go_page(self,index):
+        if self.application_mode == 'reading' and 0 <= index < self.state.get('page_count',0):
+            self.reader.go_page(index)
+            self.page_number = index
+            return
         if index < 0 or index >= self.state.get('page_count',0) or not self.state or self.busy or self.state.get("preview") or self.canvas.editor.isVisible():
             return
         self.page_number = index
@@ -630,6 +644,14 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
         self.set_zoom(self.zoom * (1.25 if direction > 0 else .8))
 
     def set_zoom(self,value):
+        if self.application_mode == 'reading' and self.state:
+            self.zoom = max(.1, min(float(value), 4.))
+            self._reader_generation_v180 += 1
+            self._reader_queue_v180.clear()
+            self.reader.set_zoom(self.zoom)
+            self._sync_zoom_control()
+            self._refresh_actions()
+            return
         if not value or self.busy or self.canvas.editor.isVisible():
             return
         self.zoom = max(.1,min(float(value),4.))
@@ -638,12 +660,16 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
             self.load_page()
 
     def fit_page(self,width_only=False):
-        if not self.model:
+        if self.application_mode == 'reading' and self.reader._geometries:
+            width, height = self.reader._geometries[self.reader.current_page()]
+        elif self.model:
+            width, height = self.model.width, self.model.height
+        else:
             return
-        viewport = self.canvas.viewport()
-        ratio = (viewport.width()-35)/self.model.width
+        viewport = self.reader.viewport() if self.application_mode == 'reading' else self.canvas.viewport()
+        ratio = (viewport.width()-35)/width
         if not width_only:
-            ratio = min(ratio,(viewport.height()-35)/self.model.height)
+            ratio = min(ratio,(viewport.height()-35)/height)
         self.set_zoom(ratio)
 
     def toggle_original(self,checked):
@@ -945,6 +971,7 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
         self._last_search = text
         def found(result):
             self._search_matches = result["matches"]
+            self.reader.set_search_matches(self._search_matches)
             self._search_index = -1
             if not self._search_matches:
                 self._notice(f"No se encuentra «{text}» en el documento de trabajo.")
@@ -959,6 +986,10 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
         match = self._search_matches[self._search_index]
         self._notice(f"Coincidencia {self._search_index+1} de {len(self._search_matches)} · Página {match['page']+1}")
         self.page_number = match["page"]
+        if self.application_mode == 'reading':
+            self.reader.go_page(self.page_number)
+            self.reader.reveal_rect(self.page_number, match['rect'])
+            return
         self.pages.blockSignals(True)
         self.pages.setCurrentRow(self.page_number)
         self.pages.blockSignals(False)
@@ -979,6 +1010,8 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
             self._thumbnail_pages.discard(old)
 
     def _load_visible_thumbnail(self):
+        if self.application_mode == 'reading' and (self._reader_queue_v180 or self._reader_copy_v180 or self._reader_key_v180 is None):
+            return
         if (self.busy or not self.model or self.state.get("preview") or self._closed
                 or self.canvas.editor.isVisible() or self.canvas.pointer_gesture_pending()
                 or self._placement
@@ -1094,6 +1127,7 @@ class MainWindow(ReadingUiV171Mixin,DocumentUiV170Mixin,ClipboardUiV170Mixin,Wor
             self._closed = True
             self.poller.stop()
             self.thumbnail_timer.stop()
+            self.reader_timer_v180.stop()
             self.arrow_timer.stop()
             if self.state:
                 self.pool.submit(_dispatch,"close",{})
@@ -1118,6 +1152,7 @@ def main(argv=None):
     group.add_argument("--smoke-v162",metavar="REPORT_JSON",help="Prueba de dibujo del recuadro y firma visible con certificado sintético")
     group.add_argument("--smoke-v170",metavar="REPORT_JSON",help="Prueba dirigida de edición, propiedades, seguridad y herramientas 1.7.0")
     group.add_argument("--smoke-v171",metavar="REPORT_JSON",help="Prueba de lectura, rueda, copia, herramientas y edición 1.7.1")
+    group.add_argument("--smoke-v180",metavar="REPORT_JSON",help="Prueba de lector continuo, selección entre páginas y edición 1.8.0")
     args = parser.parse_args(argv)
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("PDF Modder")
@@ -1127,7 +1162,7 @@ def main(argv=None):
     if not application_icon.isNull():
         app.setWindowIcon(application_icon)
     initial = args.pdf
-    smoke_report=args.smoke_test or args.smoke_extended or args.smoke_tagged or args.smoke_clipped or args.smoke_v08 or args.smoke_v09 or args.smoke_compat or args.smoke_v150 or args.smoke_v160 or args.smoke_v161 or args.smoke_v162 or args.smoke_v170 or args.smoke_v171
+    smoke_report=args.smoke_test or args.smoke_extended or args.smoke_tagged or args.smoke_clipped or args.smoke_v08 or args.smoke_v09 or args.smoke_compat or args.smoke_v150 or args.smoke_v160 or args.smoke_v161 or args.smoke_v162 or args.smoke_v170 or args.smoke_v171 or args.smoke_v180
     if smoke_report and not initial:
         root = Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parents[1]))
         initial = str(root/"examples"/("compat-etiquetado-v091.pdf" if args.smoke_compat else "herramientas-v08.pdf" if args.smoke_v08 else "recortado.pdf" if args.smoke_clipped else "etiquetado.pdf" if args.smoke_tagged else "digital.pdf"))
@@ -1136,7 +1171,9 @@ def main(argv=None):
         window.setWindowIcon(application_icon)
     window.show()
     if smoke_report:
-        if args.smoke_v171:
+        if args.smoke_v180:
+            from .smoke_v180 import SmokeV180 as Smoke
+        elif args.smoke_v171:
             from .smoke_v171 import SmokeV171 as Smoke
         elif args.smoke_v170:
             from .smoke_v170 import SmokeV170 as Smoke

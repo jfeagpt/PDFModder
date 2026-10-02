@@ -39,8 +39,9 @@ jobs:
       - name: Comprobar, compilar y empaquetar
         run: >-
           .venv/Scripts/python.exe scripts/release_v170.py --tests
-          tests/test_reading_canvas_v171.py tests/test_reading_worker_v171.py
-          tests/test_reading_ui_v171.py tests/test_updates_v170.py
+          tests/test_continuous_reader_v180.py tests/test_continuous_ui_v180.py
+          tests/test_reader_worker_v180.py tests/test_untag_v180.py
+          tests/test_reading_worker_v171.py tests/test_upgrade_v180.py tests/test_updates_v170.py
       - name: Conservar entregas y diagnóstico
         if: always()
         uses: actions/upload-artifact@v4

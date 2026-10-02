@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
 
 from . import __version__
 from .ui_icons_v170 import apply_action_icons_v170, icon_v170
-from .updates_v170 import AppUpdater, RELEASES_URL
+from .updates_v170 import AppUpdater, RELEASES_URL, detected_installation_directory
 
 
 class RecentFilesStore:
@@ -90,13 +90,15 @@ class UpdatesDialog(QDialog):
         super().__init__(window)
         self.window = window
         self.updater = updater
+        self._automatic_update = False
+        self._discard_confirmed = False
         self.setObjectName('updatesDialogV170')
         self.setWindowTitle('Actualizaciones de PDF Modder')
         self.setMinimumWidth(510)
         layout = QVBoxLayout(self)
         self.version_label = QLabel(f'Versión instalada: {__version__}')
         layout.addWidget(self.version_label)
-        note = QLabel('Las actualizaciones se buscan sólo al pulsar el botón. El instalador se descarga de las versiones públicas de PDF Modder en GitHub y se comprueba antes de ejecutarlo.')
+        note = QLabel('«Actualizar ahora» busca, descarga y comprueba la nueva versión. Después se cierra la aplicación, se instala y se vuelve a abrir. La instalación anterior se retira sólo después de instalar correctamente; tus PDF y preferencias se conservan. Las copias portables se conservan.')
         note.setWordWrap(True)
         layout.addWidget(note)
         self.message = QLabel()
@@ -108,7 +110,7 @@ class UpdatesDialog(QDialog):
         self.progress.setRange(0, 100)
         layout.addWidget(self.progress)
         row = QHBoxLayout()
-        self.check_button = QPushButton('Buscar actualizaciones')
+        self.check_button = QPushButton('Actualizar ahora')
         self.check_button.setObjectName('checkUpdatesV170')
         self.check_button.setIcon(icon_v170('updates'))
         self.download_button = QPushButton('Descargar instalador')
@@ -120,8 +122,10 @@ class UpdatesDialog(QDialog):
         self.check_button.clicked.connect(self._check)
         self.download_button.clicked.connect(self._download)
         self.install_button.clicked.connect(self._install)
-        for button in (self.check_button, self.download_button, self.install_button):
-            row.addWidget(button)
+        row.addWidget(self.check_button)
+        # Preserve the old attributes for integrations, with one visible action.
+        self.download_button.hide()
+        self.install_button.hide()
         layout.addLayout(row)
         release_button = QPushButton('Ver versiones públicas en GitHub')
         release_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(RELEASES_URL)))
@@ -137,7 +141,15 @@ class UpdatesDialog(QDialog):
         self._refresh()
 
     def _check(self):
-        self.updater.check()
+        self._automatic_update = True
+        self._discard_confirmed = False
+        state = self.updater.status()['state']
+        if state == 'ready':
+            self._install()
+        elif state == 'available':
+            self._download()
+        else:
+            self.updater.check()
         self._refresh()
 
     def _download(self):
@@ -146,14 +158,17 @@ class UpdatesDialog(QDialog):
 
     def _install(self):
         if self.window.busy or getattr(self.window, '_signature_placement_dialog', None) is not None:
+            self._automatic_update = False
             QMessageBox.information(self, 'Operación en curso', 'Espera a que termine la operación del PDF antes de instalar.')
             return
-        answer = QMessageBox.question(self, 'Instalar actualización',
-            'Se abrirá el instalador comprobado y se cerrará PDF Modder. ¿Continuar?',
-            QMessageBox.Yes | QMessageBox.Cancel, QMessageBox.Cancel)
-        if answer != QMessageBox.Yes or not self.window._confirm_discard():
+        if not self.window._confirm_discard():
+            self._automatic_update = False
             return
-        self.updater.install()
+        self._discard_confirmed = True
+        self._automatic_update = False
+        directory = detected_installation_directory(installed_version=self.updater.status()['installedVersion'])
+        self.updater.install(previous_directory=directory,
+                             previous_pid=os.getpid() if directory is not None else None)
         self._refresh()
 
     def _refresh(self):
@@ -167,13 +182,21 @@ class UpdatesDialog(QDialog):
         self.check_button.setEnabled(not busy)
         self.download_button.setEnabled(not busy and state == 'available')
         self.install_button.setEnabled(not busy and state == 'ready')
-        if state == 'installing':
+        if self._automatic_update and not busy:
+            if state == 'available':
+                self._download()
+            elif state == 'ready':
+                self._install()
+            elif state in ('current', 'error', 'unavailable', 'cancelled'):
+                self._automatic_update = False
+        if state == 'installing' and self._discard_confirmed:
             self.timer.stop()
             self.accept()
             self.window._allow_close = True
             self.window.close()
 
     def reject(self):
+        self._automatic_update = False
         self.timer.stop()
         if self.updater.status()['busy']:
             self.updater.cancel()

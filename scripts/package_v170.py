@@ -43,7 +43,10 @@ def prepare():
     assert bridge['signature_verified_independently'] and not bridge['private_keys_exported']
     assert bridge['exe_sha256'] == digest(BUNDLE / 'PDFModderSigningBridge.exe')
     assert bridge['source_sha256'] == digest(ROOT / 'installer/PdfModderSigningBridge.cs')
-    if SUITE == 'v171':
+    if SUITE == 'v180':
+        checked_scope = 'Lectura continua, copia entre páginas, etiquetas y actualización con corpus sintético'
+        checked_note = 'Se comprueban lectura continua, copia entre páginas, etiquetas y actualización con documentos e instalaciones aislados.'
+    elif SUITE == 'v171':
         checked_scope = 'Lectura, selección de texto y navegación con documentos sintéticos'
         checked_note = 'Se comprueban lectura, selección de texto y navegación con documentos sintéticos.'
     else:
@@ -93,10 +96,29 @@ def prepare():
     print(json.dumps(evidence, ensure_ascii=False))
 
 
+def finish_delivery(installation):
+    if SUITE == 'v180':
+        state = read(ROOT / f'output/release-{SUITE}-state.json')
+        upgrade = read(state['upgrade'])
+        installer = RELEASE / f'PDFModder-v{__version__}-Instalar.exe'
+        assert upgrade['ok'] and upgrade['application_version'] == __version__
+        assert upgrade['installer_sha256'] == digest(installer)
+        assert len(upgrade['tests']) == 4 and all(t['passed'] for t in upgrade['tests'])
+        summary = {k: upgrade[k] for k in ('ok', 'application_version', 'previous_version',
+                                         'fixture', 'installer_sha256', 'started_utc')}
+        summary['tests'] = [{k: v for k, v in t.items() if k in ('name', 'passed', 'verified_new_files')}
+                            for t in upgrade['tests']]
+        write(RELEASE / 'ACTUALIZACION-VERIFICADA.json', summary)
+        evidence = read(RELEASE / 'ENTREGA.json')
+        evidence['upgrade'] = summary
+        write(RELEASE / 'ENTREGA.json', evidence)
+    finish(installation)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     choices = parser.add_mutually_exclusive_group(required=True)
     choices.add_argument('--prepare', action='store_true')
     choices.add_argument('--finish', type=Path)
     args = parser.parse_args()
-    prepare() if args.prepare else finish(args.finish)
+    prepare() if args.prepare else finish_delivery(args.finish)

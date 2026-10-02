@@ -22,6 +22,7 @@ class ReadingUiV171Mixin:
         self.toolbar.insertWidget(self.sign_action, self.mode_label_v171)
         self.tools_action.toggled.connect(self._tools_mode_v171)
         self.canvas.wheel_page_requested.connect(self._wheel_page_v171)
+        self._create_continuous_ui_v180()
         self._set_mode_v171('reading')
         self._notice('Modo Lectura: selecciona y copia texto. Pulsa «Herramientas» para editar.')
 
@@ -33,6 +34,7 @@ class ReadingUiV171Mixin:
         self.tools_action.blockSignals(blocked)
         self.tools_scroll.setVisible(editing)
         self.canvas.reading_mode = not editing
+        self._show_document_mode_v180(mode)
         self.mode_label_v171.setText('Edición' if editing else 'Lectura')
         for action in self.mode_actions_v170.values():
             action.setVisible(editing)
@@ -72,7 +74,7 @@ class ReadingUiV171Mixin:
     def _reading_command_allowed_v171(self, command):
         if self.application_mode == 'editing':
             return True
-        if command in ('open', 'close', 'page', 'prepare_editing', 'search', 'document_properties', 'clipboard_copy'):
+        if command in ('open', 'close', 'page', 'reading_info', 'reading_copy_range', 'prepare_editing', 'search', 'document_properties', 'clipboard_copy'):
             return True
         self._notice('Pulsa «Herramientas» para activar el modo Edición.')
         return False

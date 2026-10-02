@@ -34,9 +34,52 @@ class Session:
         self.cache=OrderedDict()
         self.cache_bytes=0
         self.saved_digest=hashlib.sha256(self.original).hexdigest()
+        self._tagged_revision=self.saved_digest
         self.original_page_count=self.page_count
         self.protected_paths={self.path}
         self._page_caps_cache=OrderedDict()
+        self._reading_info_cache=OrderedDict()
+
+    def reading_info(self,original=False):
+        data=self.original if original else (self.pending or self.history.current)
+        revision=hashlib.sha256(data).hexdigest()
+        keys=self._page_keys()
+        cache_key=(revision,bool(original),tuple(keys))
+        if cache_key not in self._reading_info_cache:
+            with self._open(data) as document:
+                geometries=[]
+                for index in range(len(keys)):
+                    source=keys[index] if original else index
+                    rect=document[source].rect if source>=0 else fitz.Rect(0,0,595,842)
+                    geometries.append({'width':rect.width,'height':rect.height})
+                self._reading_info_cache[cache_key]={'page_geometries':geometries,'revision':revision}
+            while len(self._reading_info_cache)>3:self._reading_info_cache.popitem(last=False)
+        return dict(self._reading_info_cache[cache_key])
+
+    def reading_copy_range(self,start,end,revision,original=False):
+        from .reading_order_v180 import selection_text
+        data=self.original if original else (self.pending or self.history.current)
+        if revision!=hashlib.sha256(data).hexdigest():
+            raise EditError('El documento cambió después de seleccionar. Selecciona de nuevo el texto.')
+        keys=self._page_keys()
+        first,last=int(start['page']),int(end['page'])
+        if not 0<=first<=last<len(keys):raise EditError('El rango de páginas seleccionado no es válido.')
+        parts=[];length=0
+        with self._open(data) as document:
+            if not document.permissions & fitz.PDF_PERM_COPY:
+                raise EditError('El documento no permite copiar texto con las credenciales aportadas.')
+            for number in range(first,last+1):
+                source=keys[number] if original else number
+                if source<0:raise EditError('La página seleccionada no existe en el original.')
+                model=extract_page(document,source,None)
+                try:
+                    text=selection_text(model,start_id=start['id'] if number==first else None,
+                                         end_id=end['id'] if number==last else None)
+                except (KeyError,ValueError) as error:
+                    raise EditError('No se reconoce el extremo seleccionado. Selecciona de nuevo.') from error
+                parts.append(text);length+=len(text)
+                if length>8_000_000:raise EditError('La selección supera ocho millones de caracteres. Copia un rango menor.')
+        return {'text':'\n\n'.join(parts),'revision':revision}
 
     def _page_keys(self, pending=True):
         reports=self.history.base_reports+self.history.reports[:self.history.index+1]
@@ -180,6 +223,11 @@ class Session:
     def state(self):
         keys=self._page_keys()
         current_digest=hashlib.sha256(self.history.current).hexdigest()
+        tagged_revision=hashlib.sha256(self.pending or self.history.current).hexdigest()
+        if tagged_revision!=self._tagged_revision:
+            with self._open(self.pending or self.history.current) as document:
+                self.tagged=document.xref_get_key(document.pdf_catalog(),'StructTreeRoot')[0]!='null'
+            self._tagged_revision=tagged_revision
         page_caps={key:True for key in ('supported','delete','extract','reorder','rotate','duplicate','insert_blank','insert_pdf')}
         page_caps['reason']=''
         if not self._editing_prepared:
@@ -200,6 +248,7 @@ class Session:
         return {'path':self.path,'page_count':len(keys),'original_pages':[k if k>=0 else None for k in keys],'undo':self.history.index>0,
                 'redo':self.history.index+1<len(self.history.states),'issues':self.issues,'tagged':self.tagged,
                 'page_capabilities':page_caps,
+                'document_revision':hashlib.sha256(self.pending or self.history.current).hexdigest(),
                 'comparison_geometry_changed':[key in geometry_changed for key in self._instance_keys()],
                 'preview':self.pending is not None,'dirty':current_digest!=self.saved_digest,
                 'history_index':self.history.index,'history_dropped':self.history.dropped,
@@ -742,6 +791,15 @@ def dispatch(command,payload=None):
     if _session is None:
         raise EditError('Abre primero un PDF.')
     if command=='prepare_editing':return _session.prepare_editing(**payload)
+    if command=='reading_info':return {**_session.reading_info(**payload),'state':_session.state()}
+    if command=='reading_copy_range':return _session.reading_copy_range(**payload)
+    if command=='remove_tags':
+        _session._require_editing()
+        if _session.issues:raise EditError('\n'.join(_session.issues))
+        if _session.pending is not None:raise EditError('Aplica o cancela la vista previa anterior.')
+        from .untag_v180 import remove_tags
+        candidate,report=remove_tags(_session.history.current,password=_session.password)
+        return _session._put_preview(candidate,report)
     # Engines retain their own document-specific checks. This guard prevents
     # any mutation/export route from using the deliberately unchecked reader.
     if command in ('clipboard_apply','edit_document_metadata','export_secure_pdf',
