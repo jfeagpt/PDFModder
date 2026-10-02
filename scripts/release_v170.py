@@ -47,6 +47,7 @@ def main():
     args = parser.parse_args()
     start = PHASES.index(args.start)
     (ROOT / 'output').mkdir(exist_ok=True)
+    (ROOT / 'tmp').mkdir(exist_ok=True)
     state = read(STATE) if STATE.exists() else {}
     if start == 0:
         if not args.tests:
