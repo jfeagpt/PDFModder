@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 
 from PySide6.QtCore import QSignalBlocker, QSize, QStandardPaths, Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QActionGroup, QDesktopServices
@@ -141,6 +142,10 @@ class UpdatesDialog(QDialog):
         self._refresh()
 
     def _check(self):
+        status = self.updater.status()
+        if status['busy'] or (status['state'] != 'ready' and status.get('retryAt', 0) > time.time()):
+            self._refresh()
+            return
         self._automatic_update = True
         self._discard_confirmed = False
         state = self.updater.status()['state']
@@ -179,15 +184,18 @@ class UpdatesDialog(QDialog):
         self.message.setText(status['message'])
         self.progress.setVisible(state in ('downloading', 'ready'))
         self.progress.setValue(status['progress'])
-        self.check_button.setEnabled(not busy)
-        self.download_button.setEnabled(not busy and state == 'available')
+        retry_at = status.get('retryAt', 0)
+        can_query = retry_at <= time.time()
+        self.check_button.setEnabled(not busy and (can_query or state == 'ready'))
+        self.check_button.setToolTip('GitHub ha indicado que esperes antes de volver a consultar.' if not can_query else 'Buscar, descargar e instalar la actualización')
+        self.download_button.setEnabled(not busy and can_query and state == 'available')
         self.install_button.setEnabled(not busy and state == 'ready')
         if self._automatic_update and not busy:
             if state == 'available':
                 self._download()
             elif state == 'ready':
                 self._install()
-            elif state in ('current', 'error', 'unavailable', 'cancelled'):
+            elif state in ('current', 'error', 'rate_limited', 'unavailable', 'cancelled'):
                 self._automatic_update = False
         if state == 'installing' and self._discard_confirmed:
             self.timer.stop()

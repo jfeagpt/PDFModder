@@ -1153,6 +1153,7 @@ def main(argv=None):
     group.add_argument("--smoke-v170",metavar="REPORT_JSON",help="Prueba dirigida de edición, propiedades, seguridad y herramientas 1.7.0")
     group.add_argument("--smoke-v171",metavar="REPORT_JSON",help="Prueba de lectura, rueda, copia, herramientas y edición 1.7.1")
     group.add_argument("--smoke-v180",metavar="REPORT_JSON",help="Prueba de lector continuo, selección entre páginas y edición 1.8.0")
+    group.add_argument("--smoke-v181",metavar="REPORT_JSON",help="Recorrido del ejecutable con actualizador corregido 1.8.1")
     args = parser.parse_args(argv)
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("PDF Modder")
@@ -1162,7 +1163,7 @@ def main(argv=None):
     if not application_icon.isNull():
         app.setWindowIcon(application_icon)
     initial = args.pdf
-    smoke_report=args.smoke_test or args.smoke_extended or args.smoke_tagged or args.smoke_clipped or args.smoke_v08 or args.smoke_v09 or args.smoke_compat or args.smoke_v150 or args.smoke_v160 or args.smoke_v161 or args.smoke_v162 or args.smoke_v170 or args.smoke_v171 or args.smoke_v180
+    smoke_report=args.smoke_test or args.smoke_extended or args.smoke_tagged or args.smoke_clipped or args.smoke_v08 or args.smoke_v09 or args.smoke_compat or args.smoke_v150 or args.smoke_v160 or args.smoke_v161 or args.smoke_v162 or args.smoke_v170 or args.smoke_v171 or args.smoke_v180 or args.smoke_v181
     if smoke_report and not initial:
         root = Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parents[1]))
         initial = str(root/"examples"/("compat-etiquetado-v091.pdf" if args.smoke_compat else "herramientas-v08.pdf" if args.smoke_v08 else "recortado.pdf" if args.smoke_clipped else "etiquetado.pdf" if args.smoke_tagged else "digital.pdf"))
@@ -1171,7 +1172,7 @@ def main(argv=None):
         window.setWindowIcon(application_icon)
     window.show()
     if smoke_report:
-        if args.smoke_v180:
+        if args.smoke_v180 or args.smoke_v181:
             from .smoke_v180 import SmokeV180 as Smoke
         elif args.smoke_v171:
             from .smoke_v171 import SmokeV171 as Smoke

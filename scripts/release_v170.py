@@ -78,7 +78,7 @@ def main():
         run('installer-build', [PYTHON, 'scripts/build_current_installer.py'])
         output = run('installer-tests', [PYTHON, 'scripts/verify_install_uninstall_v09.py', '--suite', SUITE])
         state['installation'] = json.loads(output)['report']
-        if SUITE == 'v180':
+        if SUITE in ('v180', 'v181'):
             output = run('upgrade-tests', [PYTHON, 'scripts/verify_upgrade_v180.py'])
             state['upgrade'] = json.loads(output)['report']
         write(STATE, state)

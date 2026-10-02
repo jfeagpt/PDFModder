@@ -43,7 +43,10 @@ def prepare():
     assert bridge['signature_verified_independently'] and not bridge['private_keys_exported']
     assert bridge['exe_sha256'] == digest(BUNDLE / 'PDFModderSigningBridge.exe')
     assert bridge['source_sha256'] == digest(ROOT / 'installer/PdfModderSigningBridge.cs')
-    if SUITE == 'v180':
+    if SUITE == 'v181':
+        checked_scope = 'Actualizador público sin consulta REST habitual, espera de consultas y caché de metadatos'
+        checked_note = 'Se comprueban límites de consultas, caché, descarga segura y el recorrido del ejecutable.'
+    elif SUITE == 'v180':
         checked_scope = 'Lectura continua, copia entre páginas, etiquetas y actualización con corpus sintético'
         checked_note = 'Se comprueban lectura continua, copia entre páginas, etiquetas y actualización con documentos e instalaciones aislados.'
     elif SUITE == 'v171':
@@ -97,7 +100,7 @@ def prepare():
 
 
 def finish_delivery(installation):
-    if SUITE == 'v180':
+    if SUITE in ('v180', 'v181'):
         state = read(ROOT / f'output/release-{SUITE}-state.json')
         upgrade = read(state['upgrade'])
         installer = RELEASE / f'PDFModder-v{__version__}-Instalar.exe'

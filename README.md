@@ -1,4 +1,4 @@
-# PDF Modder 1.8.0
+# PDF Modder 1.8.1
 
 Editor local para Windows 11 x64, en español: texto PDF real, imágenes y páginas.
 No necesita cuentas, nube, telemetría ni IA. No realiza OCR; conserva la herramienta
@@ -9,14 +9,14 @@ anterior para corregir una capa buscable existente.
 Descargas y versiones públicas: [GitHub Releases](https://github.com/jfeagpt/PDFModder/releases).
 El botón **Buscar actualizaciones** consulta este mismo repositorio, sin iniciar sesión.
 
-Instalador: `releases/v1.8.0/PDFModder-v1.8.0-Instalar.exe`. Incluye las dependencias
+Instalador: `releases/v1.8.1/PDFModder-v1.8.1-Instalar.exe`. Incluye las dependencias
 y registra su desinstalador en Aplicaciones instaladas. La alternativa portable
 requiere toda la carpeta `PDFModder`, con `_internal` junto a `PDFModder.exe`.
-Ejecute el instalador y pulse **Instalar**; después abra **PDF Modder 1.8.0** desde
+Ejecute el instalador y pulse **Instalar**; después abra **PDF Modder 1.8.1** desde
 el acceso creado. **Actualizar ahora** descarga, verifica e instala la actualización,
 cierra la aplicación tras resolver los cambios pendientes y retira la instalación
 anterior identificada cuando la nueva instalación termina correctamente. Conserva
-documentos personales y preferencias. Para retirarla, use **Desinstalar PDF Modder 1.8.0** o
+documentos personales y preferencias. Para retirarla, use **Desinstalar PDF Modder 1.8.1** o
 la entrada correspondiente de Aplicaciones instaladas de Windows.
 
 Desde el código, con Python 3.12 x64:
@@ -28,7 +28,16 @@ powershell -ExecutionPolicy Bypass -File scripts/start.ps1
 
 Con el entorno ya instalado: `.venv/Scripts/python.exe run_pdfmodder.py`.
 
-## Novedades 1.8.0
+## Corrección 1.8.1
+
+La búsqueda de actualizaciones usa el manifiesto de descarga público de GitHub,
+sin consumir normalmente la cuota de la API REST compartida por dirección IP.
+Reutiliza los metadatos validados durante cinco minutos y evita consultarlos de nuevo
+entre Buscar y Descargar. Si GitHub indica un plazo de espera, lo muestra y evita
+reintentos prematuros. Conserva la comprobación SHA-256 antes de ejecutar el instalador.
+Consulte [la corrección y sus límites](docs/GUIA_V181.md).
+
+## Novedades 1.8.0 (histórico)
 
 Lectura continua con páginas apiladas, carga de páginas cercanas y caché limitada.
 Selección y copia de varios párrafos y páginas, mediante arrastre o Mayús+clic.

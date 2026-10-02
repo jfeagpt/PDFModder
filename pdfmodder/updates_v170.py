@@ -1,4 +1,4 @@
-"""Manual public GitHub Releases updater with bounded downloads and SHA-256.
+"""Public GitHub Releases updater with bounded downloads and SHA-256.
 
 There is no startup request, login, telemetry, embedded credential or automatic
 installation. Workers expose plain status snapshots and never call Qt widgets.
@@ -7,6 +7,7 @@ Asset contract: https://docs.github.com/en/rest/releases/assets#get-a-release-as
 """
 from __future__ import annotations
 
+import email.utils
 import hashlib
 import json
 import os
@@ -26,6 +27,8 @@ REPOSITORY = 'jfeagpt/PDFModder'
 RELEASES_URL = f'https://github.com/{REPOSITORY}/releases'
 LATEST_URL = f'https://api.github.com/repos/{REPOSITORY}/releases/latest'
 MANIFEST_NAME = 'PDFModder-update.json'
+LATEST_MANIFEST_URL = f'{RELEASES_URL}/latest/download/{MANIFEST_NAME}'
+METADATA_CACHE_SECONDS = 300
 MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_MANIFEST_BYTES = 64 * 1024
 MAX_PACKAGE_BYTES = 1024 * 1024 * 1024
@@ -35,6 +38,38 @@ TRUSTED_DOWNLOAD_HOSTS = frozenset({'github.com', 'release-assets.githubusercont
 
 class NoPublicRelease(ValueError):
     pass
+
+
+class RateLimited(ValueError):
+    def __init__(self, retry_at):
+        self.retry_at = retry_at
+        hour = time.strftime('%H:%M:%S', time.localtime(retry_at))
+        super().__init__(f'GitHub ha limitado temporalmente las consultas. Puedes volver a intentarlo a las {hour}.')
+
+
+def _rate_limit(error):
+    """Honor server backoff; never retry or consult another endpoint on 403/429."""
+    now = time.time()
+    headers = error.headers or {}
+    retry = headers.get('Retry-After') or headers.get('retry-after')
+    deadlines = []
+    if retry:
+        try:
+            deadlines.append(now + max(0, float(retry)))
+        except (ValueError, TypeError):
+            try:
+                deadlines.append(email.utils.parsedate_to_datetime(retry).timestamp())
+            except (ValueError, TypeError, OverflowError):
+                pass
+    remaining = headers.get('X-RateLimit-Remaining') or headers.get('x-ratelimit-remaining')
+    reset = headers.get('X-RateLimit-Reset') or headers.get('x-ratelimit-reset')
+    if remaining == '0' and reset:
+        try:
+            deadlines.append(float(reset))
+        except (ValueError, TypeError):
+            pass
+    future = [deadline for deadline in deadlines if now < deadline < float('inf')]
+    return RateLimited(int(max(future) if future else now + 60) + 1)
 
 
 def version_tuple(value):
@@ -64,6 +99,10 @@ class TrustedRedirects(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, request, fp, code, message, headers, newurl):
         _safe_https(newurl)
+        if (urllib.parse.urlsplit(newurl).hostname == 'github.com' and
+                newurl != LATEST_MANIFEST_URL and not urllib.parse.urlsplit(newurl).path.startswith(
+                    f'/{REPOSITORY}/releases/download/')):
+            raise ValueError('GitHub ha redirigido el archivo a otro repositorio.')
         return super().redirect_request(request, fp, code, message, headers, newurl)
 
 
@@ -72,7 +111,8 @@ def open_public(url, *, api=False):
     if api and url != LATEST_URL:
         raise ValueError('La consulta de versión no pertenece al repositorio de PDF Modder.')
     if not api and urllib.parse.urlsplit(url).hostname == 'github.com':
-        if not urllib.parse.urlsplit(url).path.startswith(f'/{REPOSITORY}/releases/download/'):
+        if (url != LATEST_MANIFEST_URL and not urllib.parse.urlsplit(url).path.startswith(
+                f'/{REPOSITORY}/releases/download/')):
             raise ValueError('El archivo no pertenece al repositorio de PDF Modder.')
     request = urllib.request.Request(url, headers={
         'User-Agent': 'PDFModder-ManualUpdater/1', 'Cache-Control': 'no-cache',
@@ -85,6 +125,10 @@ def open_public(url, *, api=False):
         _safe_https(final_url, api=api)
         if api and final_url != LATEST_URL:
             raise ValueError('GitHub ha redirigido la consulta a un destino no autorizado.')
+        if (not api and urllib.parse.urlsplit(final_url).hostname == 'github.com'
+                and final_url != LATEST_MANIFEST_URL and not urllib.parse.urlsplit(final_url).path.startswith(
+                    f'/{REPOSITORY}/releases/download/')):
+            raise ValueError('GitHub ha redirigido el archivo a otro repositorio.')
     except Exception:
         response.close()
         raise
@@ -135,11 +179,17 @@ def _asset(release, filename, version):
     return item
 
 
-def validate_manifest(manifest, release):
-    version = _release_version(release)
+def validate_public_manifest(manifest):
+    """The canonical public release asset supplies version, size and integrity.
+
+    The installer URL is constructed locally; arbitrary URLs in a manifest are
+    never followed. HTTPS host and repository validation remains in open_public.
+    """
     if (not isinstance(manifest, dict) or type(manifest.get('schema')) is not int
-            or manifest['schema'] != 1 or manifest.get('version') != version):
-        raise ValueError('El manifiesto no coincide con la versión publicada.')
+            or manifest['schema'] != 1):
+        raise ValueError('El manifiesto de actualización no tiene el formato esperado.')
+    version = manifest.get('version')
+    version_tuple(version)
     item = manifest.get('windows')
     filename = f'PDFModder-v{version}-Instalar.exe'
     if not isinstance(item, dict) or item.get('filename') != filename:
@@ -150,25 +200,49 @@ def validate_manifest(manifest, release):
     size = item.get('size')
     if type(size) is not int or not 0 < size <= MAX_PACKAGE_BYTES:
         raise ValueError('El tamaño del instalador excede el límite permitido.')
+    url = f'{RELEASES_URL}/download/v{version}/{filename}'
+    if (('url' in item and item['url'] != url)
+            or ('repository' in manifest and manifest['repository'] != REPOSITORY)):
+        raise ValueError('La dirección del archivo no corresponde a esta publicación de PDF Modder.')
+    return {'version': version, 'filename': filename, 'url': url,
+            'sha256': digest.lower(), 'size': size}
+
+
+def validate_manifest(manifest, release):
+    version = _release_version(release)
+    result = validate_public_manifest(manifest)
+    if result['version'] != version:
+        raise ValueError('El manifiesto no coincide con la versión publicada.')
+    filename, size, digest = result['filename'], result['size'], result['sha256']
     asset = _asset(release, filename, version)
     if type(asset.get('size')) is not int or asset['size'] != size:
         raise ValueError('El tamaño publicado en GitHub no coincide con el manifiesto.')
     asset_digest = asset.get('digest')
     if asset_digest is not None and asset_digest != 'sha256:' + digest.lower():
         raise ValueError('La comprobación de GitHub no coincide con el manifiesto.')
-    return {'version': version, 'filename': filename, 'url': asset['browser_download_url'],
-            'sha256': digest.lower(), 'size': size}
+    return result
 
 
 def read_release(cancel=None):
     cancel = cancel or threading.Event()
+    # This documented asset endpoint is a public download, not an anonymous REST
+    # request sharing GitHub's 60 requests/hour allowance with the network's IP.
+    try:
+        return validate_public_manifest(_bounded_json(
+            LATEST_MANIFEST_URL, MAX_MANIFEST_BYTES, cancel))
+    except urllib.error.HTTPError as error:
+        if error.code in (403, 429):
+            raise _rate_limit(error) from error
+        if error.code != 404:
+            raise
+    # Only an absent latest manifest may use the legacy API for older releases.
     try:
         release = _bounded_json(LATEST_URL, MAX_METADATA_BYTES, cancel, api=True)
     except urllib.error.HTTPError as error:
         if error.code == 404:
             raise NoPublicRelease('No hay una versión pública disponible. El repositorio puede ser privado o aún no tiene releases.') from error
         if error.code in (403, 429):
-            raise ValueError('GitHub ha limitado temporalmente las consultas. Inténtalo más tarde.') from error
+            raise _rate_limit(error) from error
         raise
     version = _release_version(release)
     asset = _asset(release, MANIFEST_NAME, version)
@@ -228,9 +302,11 @@ class AppUpdater:
         self._cancel = threading.Event()
         self._busy = False
         self._release = None
+        self._release_checked_at = 0
         self._ready_path = None
         self._status = {'state': 'idle', 'installedVersion': installed_version,
                         'latestVersion': '', 'progress': 0,
+                        'retryAt': 0,
                         'message': 'Busca nuevas versiones públicas cuando quieras.'}
 
     def status(self):
@@ -248,9 +324,11 @@ class AppUpdater:
         with self._lock:
             if self._busy:
                 return False
+            if state != 'verifying' and self._status['retryAt'] > time.time():
+                return False
             self._cancel.clear()
             self._busy = True
-            self._status.update(state=state, progress=0, message=message)
+            self._status.update(state=state, progress=0, message=message, retryAt=0)
 
         def run():
             try:
@@ -259,6 +337,14 @@ class AppUpdater:
                 self._set(state='cancelled', message='Operación cancelada.')
             except NoPublicRelease as error:
                 self._set(state='unavailable', message=str(error))
+            except RateLimited as error:
+                self._set(state='rate_limited', message=str(error), retryAt=error.retry_at)
+            except urllib.error.HTTPError as error:
+                if error.code in (403, 429):
+                    limited = _rate_limit(error)
+                    self._set(state='rate_limited', message=str(limited), retryAt=limited.retry_at)
+                else:
+                    self._set(state='error', message='No se pudo descargar la actualización. Comprueba Internet y vuelve a intentarlo.')
             except Exception as error:
                 message = str(error) if isinstance(error, ValueError) else 'No se pudo conectar o descargar. Comprueba Internet y vuelve a intentarlo.'
                 self._set(state='error', message=message[:300])
@@ -269,12 +355,20 @@ class AppUpdater:
         threading.Thread(target=run, name='pdfmodder-updater', daemon=True).start()
         return True
 
+    def _checked_release(self):
+        if self._release is not None and time.monotonic() - self._release_checked_at < METADATA_CACHE_SECONDS:
+            return dict(self._release)
+        # Drop expired metadata before requesting so failures cannot later reuse it.
+        self._release = None
+        release = read_release(self._cancel)
+        self._release = dict(release)
+        self._release_checked_at = time.monotonic()
+        return release
+
     def check(self):
         def operation():
-            self._release = None
             self._ready_path = None
-            release = read_release(self._cancel)
-            self._release = release
+            release = self._checked_release()
             latest,installed=version_tuple(release['version']),version_tuple(self._status['installedVersion'])
             newer = latest > installed
             message=('Hay una nueva versión disponible.' if newer else
@@ -287,7 +381,7 @@ class AppUpdater:
     def download(self):
         def operation():
             self._ready_path = None
-            release = read_release(self._cancel)  # Revalidate instead of trusting an old check.
+            release = self._checked_release()  # Reuse only recently validated metadata.
             if version_tuple(release['version']) <= version_tuple(self._status['installedVersion']):
                 self._set(state='current', latestVersion=release['version'], message='No hay una versión posterior disponible.')
                 return
@@ -325,7 +419,7 @@ class AppUpdater:
                     temporary.unlink()
             self._ready_path = destination
             self._set(state='ready', progress=100, message='Instalador comprobado. Puedes iniciar la instalación.')
-        return self._start('checking', 'Volviendo a comprobar la publicación antes de descargar…', operation)
+        return self._start('checking', 'Preparando la descarga de la versión verificada…', operation)
 
     def install(self, previous_directory=None, previous_pid=None):
         """Called after the update click and the unsaved-work check.
