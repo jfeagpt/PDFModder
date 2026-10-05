@@ -1,0 +1,169 @@
+name: Publicar puente de actualizaciones v2.0.3
+
+on:
+  push:
+    paths:
+      - .github/workflows/migrate-update-channel.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migrate-update-channel-v2.0.3
+  cancel-in-progress: false
+
+jobs:
+  publish-bridge:
+    if: github.repository == 'jfeagpt/PDFModder'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Verificar assets de SAT y publicar el puente
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import tempfile
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          SOURCE = 'satagrolevante/PDFModder'
+          TARGET = 'jfeagpt/PDFModder'
+          TAG = 'v2.0.3'
+          VERSION = '2.0.3'
+          MANIFEST = 'PDFModder-update.json'
+          INSTALLER = 'PDFModder-v2.0.3-Instalar.exe'
+          API = 'https://api.github.com/repos/'
+          assert os.environ['GITHUB_REPOSITORY'] == TARGET, 'Este workflow solo admite el repositorio antiguo.'
+
+          def api(repository, route, method='GET', payload=None):
+              headers = {'Accept': 'application/vnd.github+json',
+                         'User-Agent': 'PDFModder-channel-migration',
+                         'X-GitHub-Api-Version': '2026-03-10'}
+              if repository == TARGET:
+                  headers['Authorization'] = 'Bearer ' + os.environ['GITHUB_TOKEN']
+              data = None if payload is None else json.dumps(payload).encode('utf-8')
+              if data is not None:
+                  headers['Content-Type'] = 'application/json'
+              request = urllib.request.Request(API + repository + route, data=data,
+                                               headers=headers, method=method)
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return json.load(response)
+
+          # La entrega pública puede publicarse poco después de este push.
+          deadline = time.monotonic() + 570
+          while True:
+              try:
+                  source = api(SOURCE, '/releases/tags/' + TAG)
+                  break
+              except urllib.error.HTTPError as error:
+                  if error.code != 404 or time.monotonic() >= deadline:
+                      raise
+                  remaining = deadline - time.monotonic()
+                  print('Esperando la release pública de SAT...', flush=True)
+                  time.sleep(min(30, max(0, remaining)))
+          if (source.get('tag_name') != TAG or source.get('draft') is not False
+                  or source.get('prerelease') is not False):
+              raise ValueError('SAT no ha publicado la versión estable esperada.')
+
+          assets = source.get('assets', [])
+          names = [asset.get('name') for asset in assets]
+          if (not assets or any(not isinstance(name, str) or not name or name in ('.', '..')
+                               or '/' in name or '\\' in name or any(ord(char) < 32 for char in name)
+                               for name in names) or len(set(names)) != len(names)
+                  or MANIFEST not in names or INSTALLER not in names):
+              raise ValueError('La release de SAT no contiene los assets esperados.')
+
+          with tempfile.TemporaryDirectory(prefix='pdfmodder-bridge-') as directory:
+              downloaded = {}
+              for asset in assets:
+                  name, size = asset['name'], asset.get('size')
+                  if (asset.get('state') != 'uploaded' or type(size) is not int
+                          or not 0 < size <= 1024 * 1024 * 1024
+                          or (name == MANIFEST and size > 65536)):
+                      raise ValueError('Asset de SAT incompleto o demasiado grande: ' + name)
+                  url = 'https://github.com/' + SOURCE + '/releases/download/' + TAG + '/' + name
+                  if asset.get('browser_download_url') != url:
+                      raise ValueError('El asset no pertenece a la release de SAT: ' + name)
+                  path = Path(directory) / name
+                  digest, count = hashlib.sha256(), 0
+                  with urllib.request.urlopen(url, timeout=60) as response, path.open('wb') as output:
+                      while chunk := response.read(1024 * 1024):
+                          count += len(chunk)
+                          if count > size:
+                              raise ValueError('La descarga excede el tamaño publicado: ' + name)
+                          digest.update(chunk)
+                          output.write(chunk)
+                  signature = 'sha256:' + digest.hexdigest()
+                  if count != size or (asset.get('digest') is not None and asset['digest'] != signature):
+                      raise ValueError('Tamaño o SHA-256 de SAT incorrecto: ' + name)
+                  downloaded[name] = (path, size, signature)
+
+              manifest = json.loads(downloaded[MANIFEST][0].read_text(encoding='utf-8'))
+              windows = manifest.get('windows') if isinstance(manifest, dict) else None
+              if (not isinstance(manifest, dict) or type(manifest.get('schema')) is not int
+                      or manifest['schema'] != 1 or manifest.get('version') != VERSION
+                      or not isinstance(windows, dict) or windows.get('filename') != INSTALLER
+                      or type(windows.get('size')) is not int
+                      or not isinstance(windows.get('sha256'), str)
+                      or not re.fullmatch('[0-9a-fA-F]{64}', windows['sha256'])):
+                  raise ValueError('El manifiesto de SAT no es válido.')
+              if 'repository' in manifest or 'url' in windows:
+                  raise ValueError('El puente requiere un manifiesto compatible sin repository ni url.')
+              _, size, signature = downloaded[INSTALLER]
+              if windows['size'] != size or 'sha256:' + windows['sha256'].lower() != signature:
+                  raise ValueError('El instalador no coincide con el tamaño y SHA-256 del manifiesto.')
+
+              try:
+                  target = api(TARGET, '/releases/tags/' + TAG)
+              except urllib.error.HTTPError as error:
+                  if error.code != 404:
+                      raise
+                  # Las releases draft no siempre aparecen en la consulta por tag.
+                  pending = api(TARGET, '/releases?per_page=100')
+                  matching = [release for release in pending if release.get('tag_name') == TAG]
+                  if len(matching) > 1:
+                      raise ValueError('Hay varias releases del puente; no se modifica ninguna.')
+                  target = matching[0] if matching else api(TARGET, '/releases', 'POST', {
+                      'tag_name': TAG, 'target_commitish': os.environ['GITHUB_SHA'],
+                      'name': 'PDF Modder ' + VERSION,
+                      'body': 'Release puente con los mismos assets verificados de SAT: '
+                              'https://github.com/' + SOURCE + '/releases/tag/' + TAG,
+                      'draft': True, 'prerelease': False, 'make_latest': 'false'})
+
+              existing = {asset['name']: asset for asset in target.get('assets', [])}
+              # Comprobar todos los existentes antes de subir cualquier archivo.
+              for name, (_, size, signature) in downloaded.items():
+                  if name in existing and (existing[name].get('state') != 'uploaded'
+                          or existing[name].get('size') != size
+                          or existing[name].get('digest') != signature):
+                      raise ValueError('Asset existente diferente; no se reemplaza: ' + name)
+
+              release_id = str(target['id'])
+              for name, (path, size, signature) in downloaded.items():
+                  if name in existing:
+                      continue
+                  url = ('https://uploads.github.com/repos/' + TARGET + '/releases/'
+                         + release_id + '/assets?name=' + urllib.parse.quote(name, safe=''))
+                  request = urllib.request.Request(url, data=path.read_bytes(), method='POST', headers={
+                      'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'],
+                      'Accept': 'application/vnd.github+json', 'Content-Type': 'application/octet-stream',
+                      'X-GitHub-Api-Version': '2026-03-10', 'User-Agent': 'PDFModder-channel-migration'})
+                  with urllib.request.urlopen(request, timeout=600) as response:
+                      uploaded = json.load(response)
+                  if (uploaded.get('state') != 'uploaded' or uploaded.get('size') != size
+                          or uploaded.get('digest') != signature):
+                      raise ValueError('La subida no coincide con el asset de SAT: ' + name)
+
+              published = api(TARGET, '/releases/' + release_id, 'PATCH', {
+                  'draft': False, 'prerelease': False, 'make_latest': 'true'})
+              print('Puente publicado: ' + published['html_url'], flush=True)
+          PY
